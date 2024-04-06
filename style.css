@@ -11,11 +11,20 @@
     display: none;
 }
 
+.tables {
+    display: flex;
+    gap: 32px;
+}
+
 table {
     margin-top: 32px;
     border: 1px solid gray;
     padding: 16px;
     border-collapse: collapse;
+}
+
+#clients-table {
+    height: fit-content;
 }
 
 .bold {

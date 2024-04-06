@@ -11,6 +11,7 @@
 const csvUploadField = document.getElementById('csv-upload');
 const csvUploadFieldError = document.getElementById('csv-upload-error');
 const paymentsTable = document.getElementById('payments-table');
+const clientsTable = document.getElementById('clients-table')
 
 
 /** @type { Payment [] } */
@@ -20,7 +21,6 @@ const DOLLAR_TO_EURO_RATE = 0.92;
 
 
 csvUploadField.addEventListener('change', async (e) => {
-    console.log('changing');
     csvUploadFieldError.innerHTML = '';
     const target = /** @type { HTMLInputElement } */ (e.target);
 
@@ -33,6 +33,7 @@ csvUploadField.addEventListener('change', async (e) => {
             }
             payments = await parseCSVFile(file);
             renderTable(payments);
+            renderClientsTable(payments);
         }
     } catch (e) {
         csvUploadField.value = '';
@@ -51,11 +52,7 @@ const parseCSVFile = async (file) => {
 
     const sheet = data.Sheets.Sheet1;
 
-    console.log(data);
-
     let rows = [...Array(100)].map(() => ({}));
-
-    console.log(rows);
 
     for(const cellKey in sheet) {
         if (cellKey.startsWith('!')) {
@@ -63,8 +60,6 @@ const parseCSVFile = async (file) => {
         }
         const column = cellKey.substring(0, 1);
         const row = parseInt(cellKey.substring(1, cellKey.length));
-        console.log('column:', column);
-        console.log('row: ', row);
         rows[row - 1][column] = sheet[cellKey];
     }
 
@@ -97,7 +92,6 @@ const parseRow = (row) => {
 
     const title = /** @type { string } */ (row.D.v);
 
-    console.log('title: ', title);
 
     if (!title || !title.includes('Invoice')) {
         return null;
@@ -117,8 +111,6 @@ const parseRow = (row) => {
  * @param { Payment[] } payments
  */
 const renderTable = (payments, showTableIfHidden = true) => {
-
-    console.log(payments);
 
     paymentsTable.innerHTML = '';
 
@@ -188,6 +180,103 @@ const createPaymentsTableRow = (payment) => {
     }
 
     return row;
+}
+
+const createTableHead = (cols) => {
+    const tHead = document.createElement('thead');
+    const tHeadRow = document.createElement('tr');
+
+    for (tHeadCol of cols) {
+        const colElement = document.createElement('th');
+        colElement.innerHTML = tHeadCol;
+        tHeadRow.appendChild(colElement);
+    }
+
+    tHead.appendChild(tHeadRow);
+
+    return tHead;
+}
+
+const createTableRow = (cols) => {
+    const row = document.createElement('tr');
+    for (column of cols) {
+        const colElement = document.createElement('td');
+        colElement.innerHTML = column;
+        row.appendChild(colElement);
+    }
+    return row;
+}
+
+const createTable = (headCols, rows) => {
+    const tHead = createTableHead(headCols);
+    const tBody = document.createElement('tbody');
+    
+    for (row of rows) {
+        const rowElement = createTableRow(row);
+        tBody.appendChild(rowElement);
+    }
+
+    return {
+        tHead,
+        tBody
+    }
+}
+
+/**
+ * @typedef { Object } Client
+ * 
+ * @property { string } name
+ * @property { number } totalAmountDollars
+ * @property { number } totalAmountEuro
+ */
+
+/**
+ * @type { Payment[] } payments
+ */
+const renderClientsTable = (payments) => {
+
+    const clientNames = [];
+
+    payments.map(payment => {
+        if (!clientNames.includes(payment.client)) {
+            clientNames.push(payment.client);
+        }
+    })
+
+    /** @type { Client[]} */
+    const clients = [];
+
+    for(clientName of clientNames) {
+        const totalAmountDollars = payments.filter(payment => payment.client == clientName).reduce((n, { amount }) => n + (amount), 0).toFixed(2)
+        const totalAmountEuro = (totalAmountDollars * DOLLAR_TO_EURO_RATE).toFixed(2);
+
+        clients.push({
+            name: clientName,
+            totalAmountDollars,
+            totalAmountEuro
+        })
+    }
+
+    const { tHead, tBody } = createTable(
+        [
+            'Client',
+            'Total (&euro;)'
+        ],
+        clients.map(client => [
+            client.name,
+            client.totalAmountEuro
+        ])
+    )
+
+
+    clientsTable.innerHTML = '';
+
+    console.log(tHead);
+    
+    clientsTable.appendChild(tHead);
+    clientsTable.appendChild(tBody);
+
+    clientsTable?.classList.remove('hidden');
 }
 
 // const hideTable
