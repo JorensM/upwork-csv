@@ -14,11 +14,30 @@ const paymentsTable = document.getElementById('payments-table');
 const clientsTable = document.getElementById('clients-table');
 const renderIfUploadedElement = document.getElementById('render-if-uploaded');
 
+// Options form
+const optionsForm = document.getElementById('options')
+const conversionRateInput = document.getElementById('conversion-rate');
+const localCurrencySymbolInput = document.getElementById('local-currency');
+const taxDeductionInput = document.getElementById('tax-deduction');
 
 /** @type { Payment [] } */
 let payments = [];
+let conversionRate = 1;
+let localCurrencySymbol = 'Euro'
+let taxDeduction = 0.3
 
-const DOLLAR_TO_EURO_RATE = 0.92;
+conversionRateInput.value = conversionRate;
+localCurrencySymbolInput.value = localCurrencySymbol;
+taxDeductionInput.value = taxDeduction * 100;
+
+optionsForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    conversionRate = conversionRateInput.value;
+    localCurrencySymbol = localCurrencySymbolInput.value;
+    taxDeduction = taxDeductionInput.value / 100;
+    renderTable(payments);
+    renderClientsTable(payments);
+})
 
 
 csvUploadField.addEventListener('change', async (e) => {
@@ -45,6 +64,8 @@ csvUploadField.addEventListener('change', async (e) => {
         csvUploadFieldError.innerHTML = e.message;
     }  
 })
+
+
 
 /**
  * Parse Upwork CSV file and convert it to an object
@@ -126,7 +147,7 @@ const renderTable = (payments, showTableIfHidden = true) => {
         'Client',
         'Date',
         'Paid ($)',
-        'Paid (&euro;)'
+        `Paid (${localCurrencySymbol})`
     ]
 
     const tBody = document.createElement('tbody');
@@ -140,7 +161,7 @@ const renderTable = (payments, showTableIfHidden = true) => {
     const emptyCell = document.createElement('td');
     emptyCell.colSpan = 3;
     const totalCol = document.createElement('td');
-    const totalEur = payments.reduce((n, { amount }) => n + (amount * DOLLAR_TO_EURO_RATE), 0).toFixed(2);
+    const totalEur = payments.reduce((n, { amount }) => n + (amount * conversionRate), 0).toFixed(2);
     totalCol.innerHTML = totalEur;
 
     totalCol.classList.add('bold');
@@ -171,7 +192,7 @@ const createPaymentsTableRow = (payment) => {
         payment.client,
         payment.date,
         payment.amount.toFixed(2),
-        (payment.amount * DOLLAR_TO_EURO_RATE).toFixed(2)
+        (payment.amount * conversionRate).toFixed(2)
     ]
 
     for (column of columns) {
@@ -249,7 +270,7 @@ const renderClientsTable = (payments) => {
 
     for(clientName of clientNames) {
         const totalAmountDollars = payments.filter(payment => payment.client == clientName).reduce((n, { amount }) => n + (amount), 0).toFixed(2)
-        const totalAmountEuro = (totalAmountDollars * DOLLAR_TO_EURO_RATE).toFixed(2);
+        const totalAmountEuro = (totalAmountDollars * conversionRate).toFixed(2);
 
         clients.push({
             name: clientName,
@@ -261,7 +282,7 @@ const renderClientsTable = (payments) => {
     const { tHead, tBody } = createTable(
         [
             'Client',
-            'Total (&euro;)'
+            `Total (${localCurrencySymbol})`
         ],
         clients.map(client => [
             client.name,

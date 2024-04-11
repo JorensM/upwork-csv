@@ -2,6 +2,7 @@
 <html>
     <head>
         <link rel='stylesheet' href='./style.css'>
+        <meta name='viewport' content='width=device-width, initial-scale=1' >
     </head>
     <body>
         <div class='input-container'>
@@ -16,6 +17,19 @@
                     <label for='conversion-rate'>Conversion rate from USD to local currency</label>
                     <input name='conversion-rate' id='conversion-rate' type='number' step='0.01' min='0'/>
                 </div>
+                <div class='input-container'>
+                    <label for='local-currency'>Local currency symbol</label>
+                    <input name='local-currency' id='local-currency'/>
+                </div>
+                <div class='input-container'>
+                    <label for='tax-deduction'>Tax deduction (percent)</label>
+                    <div>
+                        <input name='tax-deduction' id='tax-deduction' type='number' step='1' min='0' max='100'/>
+                        <span>%</span>
+                    </div>
+                    
+                </div>
+                <button>Update</button>
             </form>
             <div class='tables'>
                 <table id='payments-table'>

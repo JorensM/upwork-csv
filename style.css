@@ -2,6 +2,10 @@ body {
     display: flex;
     flex-direction: column;
     gap: 32px;
+    margin: 0px;
+    padding: 4px;
+    padding-bottom: 32px;
+    box-sizing: border-box;
 }
 
 .payments-information {
@@ -25,13 +29,17 @@ body {
 
 .tables {
     display: flex;
+    flex-wrap: wrap;
     gap: 32px;
 }
 
 table {
+    --padding: 16px;
     border: 1px solid gray;
-    padding: 16px;
+    border-radius: 2px;
+    padding: var(--padding);
     border-collapse: collapse;
+    min-width: calc(320px - var(--padding));
 }
 
 #clients-table {
@@ -55,8 +63,26 @@ td, th {
     padding: 8px;
 }
 
+/* Buttons */
+
+button {
+    width: fit-content;
+}
+
+/* Input */
+
+input#conversion-rate {
+    width: 2rem;
+}
+
 /* Forms */
 
 form#options {
-    max-width: 240px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border: 1px solid gray;
+    border-radius: 4px;
+    padding: 16px;
+    width: fit-content;
 }
