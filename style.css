@@ -1,3 +1,15 @@
+body {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+.payments-information {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
 .input-container {
     display: flex;
     flex-direction: column;
@@ -17,7 +29,6 @@
 }
 
 table {
-    margin-top: 32px;
     border: 1px solid gray;
     padding: 16px;
     border-collapse: collapse;
@@ -42,4 +53,10 @@ th {
 td, th {
     border: 1px solid #ddd;
     padding: 8px;
+}
+
+/* Forms */
+
+form#options {
+    max-width: 240px;
 }

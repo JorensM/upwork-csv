@@ -10,14 +10,22 @@
             <span class='warn' id='csv-upload-error'></span>
         </div>
 
-        <div class='tables'>
-            <table class='hidden' id='payments-table'>
-
-            </table>
+        <div class='hidden payments-information' id='render-if-uploaded'>
+            <form id='options'>
+                <div class='input-container'>
+                    <label for='conversion-rate'>Conversion rate from USD to local currency</label>
+                    <input name='conversion-rate' id='conversion-rate' type='number' step='0.01' min='0'/>
+                </div>
+            </form>
+            <div class='tables'>
+                <table id='payments-table'>
     
-            <table class='hidden' id='clients-table'>
-    
-            </table>
+                </table>
+        
+                <table id='clients-table'>
+        
+                </table>
+            </div>
         </div>
         
         

@@ -11,7 +11,8 @@
 const csvUploadField = document.getElementById('csv-upload');
 const csvUploadFieldError = document.getElementById('csv-upload-error');
 const paymentsTable = document.getElementById('payments-table');
-const clientsTable = document.getElementById('clients-table')
+const clientsTable = document.getElementById('clients-table');
+const renderIfUploadedElement = document.getElementById('render-if-uploaded');
 
 
 /** @type { Payment [] } */
@@ -26,6 +27,9 @@ csvUploadField.addEventListener('change', async (e) => {
 
     const file = /** @type { File } */ (e.target.files[0]);
 
+    renderIfUploadedElement.classList.add('hidden');
+
+
     try {
         if(file) {
             if(file.type !== 'text/csv') {
@@ -34,6 +38,7 @@ csvUploadField.addEventListener('change', async (e) => {
             payments = await parseCSVFile(file);
             renderTable(payments);
             renderClientsTable(payments);
+            renderIfUploadedElement.classList.remove('hidden');
         }
     } catch (e) {
         csvUploadField.value = '';
@@ -153,10 +158,6 @@ const renderTable = (payments, showTableIfHidden = true) => {
     tHead.appendChild(tHeadRow);
     paymentsTable.appendChild(tHead)
     paymentsTable.appendChild(tBody);
-
-    if(showTableIfHidden) {
-        paymentsTable.classList.remove('hidden');
-    }
 }
 
 /**
@@ -275,8 +276,6 @@ const renderClientsTable = (payments) => {
     
     clientsTable.appendChild(tHead);
     clientsTable.appendChild(tBody);
-
-    clientsTable?.classList.remove('hidden');
 }
 
 // const hideTable
