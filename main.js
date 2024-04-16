@@ -24,7 +24,7 @@ const taxDeductionInput = document.getElementById('tax-deduction');
 /** @type { Payment [] } */
 let payments = [];
 let conversionRate = 1;
-let localCurrencySymbol = 'Euro'
+let localCurrencySymbol = htmlEntityToCharacter('&euro;');
 let taxDeduction = 0.3;
 let taxDeductions = {};
 const defaultTaxDeduction = 0;
@@ -49,6 +49,11 @@ optionsForm.addEventListener('submit', (e) => {
     renderClientsTable(payments);
 })
 
+function htmlEntityToCharacter(str){
+    var a = document.createElement('div');
+    a.innerHTML = str;
+    return a.innerHTML;
+}
 
 csvUploadField.addEventListener('change', async (e) => {
     csvUploadFieldError.innerHTML = '';
@@ -368,12 +373,21 @@ const renderClientsTable = (payments) => {
     const { tHead, tBody } = createTable(
         [
             'Client',
-            `Total (${localCurrencySymbol})`
+            `Total (${localCurrencySymbol})`,
+            `Tax (${localCurrencySymbol})`,
+            `After Tax (${localCurrencySymbol})`
         ],
-        clients.map(client => [
-            client.name,
-            client.totalAmountEuro
-        ])
+        clients.map(client => {
+            const taxPercentage = getClientTax(client.name);
+            const taxAmount = (client.totalAmountEuro * taxPercentage).toFixed(2);
+            const totalAfterTax = (client.totalAmountEuro - taxAmount).toFixed(2)
+            return [
+                client.name,
+                client.totalAmountEuro,
+                taxAmount,
+                totalAfterTax
+            ]
+        })
     )
 
 
