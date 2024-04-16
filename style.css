@@ -40,6 +40,8 @@ table {
     padding: var(--padding);
     border-collapse: collapse;
     min-width: calc(320px - var(--padding));
+    max-width: 100vw;
+    overflow-x: auto;
 }
 
 #clients-table {

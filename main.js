@@ -147,7 +147,9 @@ const renderTable = (payments, showTableIfHidden = true) => {
         'Client',
         'Date',
         'Paid ($)',
-        `Paid (${localCurrencySymbol})`
+        `Paid (${localCurrencySymbol})`,
+        `Taxed (${localCurrencySymbol})`,
+        `Paid (${localCurrencySymbol}) after tax`
     ]
 
     const tBody = document.createElement('tbody');
@@ -160,14 +162,25 @@ const renderTable = (payments, showTableIfHidden = true) => {
     const totalRow = document.createElement('tr');
     const emptyCell = document.createElement('td');
     emptyCell.colSpan = 3;
+    // const emptyCell2 = document.createElement('td');
     const totalCol = document.createElement('td');
     const totalEur = payments.reduce((n, { amount }) => n + (amount * conversionRate), 0).toFixed(2);
+    const totalAfterTaxCol = document.createElement('td');
+    const totalLocalAfterTax = totalEur * (1 - taxDeduction);
+    const totalTaxCol = document.createElement('td');
+    const totalTax = (totalEur - totalLocalAfterTax).toFixed(2);
     totalCol.innerHTML = totalEur;
+    totalTaxCol.innerHTML = totalTax;
+    totalAfterTaxCol.innerHTML = totalLocalAfterTax;
 
     totalCol.classList.add('bold');
+    totalTaxCol.classList.add('bold');
+    totalAfterTaxCol.classList.add('bold');
 
     totalRow.appendChild(emptyCell);
     totalRow.appendChild(totalCol);
+    totalRow.appendChild(totalTaxCol);
+    totalRow.appendChild(totalAfterTaxCol);
     tBody.appendChild(totalRow);
 
 
@@ -188,11 +201,16 @@ const renderTable = (payments, showTableIfHidden = true) => {
 const createPaymentsTableRow = (payment) => {
     const row = document.createElement('tr');
 
+    const amountLocal = (payment.amount * conversionRate).toFixed(2)
+    const amountLocalAfterTax = (payment.amount * (1 - taxDeduction) * conversionRate).toFixed(2)
+
     const columns = [
         payment.client,
         payment.date,
         payment.amount.toFixed(2),
-        (payment.amount * conversionRate).toFixed(2)
+        amountLocal,
+        (amountLocal - amountLocalAfterTax).toFixed(2),
+        amountLocalAfterTax
     ]
 
     for (column of columns) {
