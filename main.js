@@ -13,6 +13,7 @@ const csvUploadFieldError = document.getElementById('csv-upload-error');
 const paymentsTable = document.getElementById('payments-table');
 const clientsTable = document.getElementById('clients-table');
 const renderIfUploadedElement = document.getElementById('render-if-uploaded');
+const taxDeductionsElement = document.getElementById('tax-deduction-fields')
 
 // Options form
 const optionsForm = document.getElementById('options')
@@ -24,17 +25,26 @@ const taxDeductionInput = document.getElementById('tax-deduction');
 let payments = [];
 let conversionRate = 1;
 let localCurrencySymbol = 'Euro'
-let taxDeduction = 0.3
+let taxDeduction = 0.3;
+let taxDeductions = {};
+const defaultTaxDeduction = 0;
 
 conversionRateInput.value = conversionRate;
 localCurrencySymbolInput.value = localCurrencySymbol;
-taxDeductionInput.value = taxDeduction * 100;
+//taxDeductionInput.value = taxDeduction * 100;
 
 optionsForm.addEventListener('submit', (e) => {
     e.preventDefault();
     conversionRate = conversionRateInput.value;
     localCurrencySymbol = localCurrencySymbolInput.value;
-    taxDeduction = taxDeductionInput.value / 100;
+    const taxDeductionFields = /** @type { HTMLElement[] } */ (Array.from(taxDeductionsElement.children));
+    for(taxDeductionField of taxDeductionFields) {
+        console.log(taxDeductionField);
+        const taxInput = taxDeductionField.querySelector('input');
+        taxDeductions[taxDeductionField.dataset.client] = taxInput.value / 100;
+    }
+    // taxDeductionsElement.children;
+    //taxDeduction = taxDeductionInput.value / 100;
     renderTable(payments);
     renderClientsTable(payments);
 })
@@ -57,6 +67,7 @@ csvUploadField.addEventListener('change', async (e) => {
             payments = await parseCSVFile(file);
             renderTable(payments);
             renderClientsTable(payments);
+            renderOptions();
             renderIfUploadedElement.classList.remove('hidden');
         }
     } catch (e) {
@@ -131,6 +142,10 @@ const parseRow = (row) => {
     })
 }
 
+const getClientTax = (clientName) => {
+    return taxDeductions[clientName] || 0;
+}
+
 /**
  * Render the payments table on the page
  * 
@@ -154,9 +169,12 @@ const renderTable = (payments, showTableIfHidden = true) => {
 
     const tBody = document.createElement('tbody');
 
+    let totalLocalAfterTax = 0;
+
     for (payment of payments) {
         const row = createPaymentsTableRow(payment);
         tBody.appendChild(row);
+        totalLocalAfterTax += payment.amount * conversionRate * (1 - getClientTax(payment.client));
     }
 
     const totalRow = document.createElement('tr');
@@ -166,7 +184,7 @@ const renderTable = (payments, showTableIfHidden = true) => {
     const totalCol = document.createElement('td');
     const totalEur = payments.reduce((n, { amount }) => n + (amount * conversionRate), 0).toFixed(2);
     const totalAfterTaxCol = document.createElement('td');
-    const totalLocalAfterTax = totalEur * (1 - taxDeduction);
+    totalLocalAfterTax = totalLocalAfterTax.toFixed(2);
     const totalTaxCol = document.createElement('td');
     const totalTax = (totalEur - totalLocalAfterTax).toFixed(2);
     totalCol.innerHTML = totalEur;
@@ -194,12 +212,62 @@ const renderTable = (payments, showTableIfHidden = true) => {
     paymentsTable.appendChild(tBody);
 }
 
+const renderOptions = () => {
+    const clients = getClients(payments);
+    taxDeductionsElement.innerHTML = "";
+    for (client of clients) {
+        const field = createTaxDeductionField(client);
+        taxDeductionsElement.appendChild(field);
+    }
+}
+
+/**
+ * Get unique clients from a payments object
+ */
+const getClients = (payments) => {
+    const clientNames = [];
+
+    payments.map(payment => {
+        if (!clientNames.includes(payment.client)) {
+            clientNames.push(payment.client);
+        }
+    })
+
+    return clientNames;
+
+}
+
+const createTaxDeductionField = (clientName) => {
+    const fieldID = 'tax-deduction-' + kebabCase(clientName)
+    const field = document.createElement('div');
+    field.classList.add('input-container');
+    field.dataset.client = clientName;
+    field.innerHTML = `
+        <label for='${fieldID}'>Tax deduction (percent) for ${clientName}</label>
+        <div>
+            <input value='${defaultTaxDeduction}' name='${fieldID}' id='${fieldID}' type='number' step='1' min='0' max='100'/>
+            <span>%</span>
+        </div>
+    `
+
+    return field;
+}
+
+const kebabCase = string => string
+    .replace(/([a-z])([A-Z])/g, "$1-$2")
+    .replace(/[\s_]+/g, '-')
+    .toLowerCase();
+
 /**
  * 
  * @param { Payment } payment 
  */
 const createPaymentsTableRow = (payment) => {
     const row = document.createElement('tr');
+
+    console.log(taxDeductions);
+    console.log(payment.client)
+    const taxDeduction = taxDeductions[payment.client] || 0;
 
     const amountLocal = (payment.amount * conversionRate).toFixed(2)
     const amountLocalAfterTax = (payment.amount * (1 - taxDeduction) * conversionRate).toFixed(2)
