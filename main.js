@@ -8,46 +8,97 @@
  * @property { string } id
 */
 
-const csvUploadField = document.getElementById('csv-upload');
-const csvUploadFieldError = document.getElementById('csv-upload-error');
-const paymentsTable = document.getElementById('payments-table');
-const clientsTable = document.getElementById('clients-table');
-const renderIfUploadedElement = document.getElementById('render-if-uploaded');
-const taxDeductionsElement = document.getElementById('tax-deduction-fields')
+/**
+ * @typedef { Object } Settings
+ * @property { number } conversionRate
+ * @property { string } localCurrencySymbol
+ * @property { { [clientName: string]: number } } taxDeductions
+ */
+
+const csvUploadField = /** @type { HTMLInputElement } */ (document.getElementById('csv-upload'));
+const csvUploadFieldError = /** @type { HTMLSpanElement } */ (document.getElementById('csv-upload-error'));
+const paymentsTable = /** @type { HTMLTableElement } */ (document.getElementById('payments-table'));
+const clientsTable = /** @type { HTMLTableElement } */ (document.getElementById('clients-table'));
+const renderIfUploadedElement = /** @type { HTMLDivElement } */ (document.getElementById('render-if-uploaded'));
+const taxDeductionsElement = /** @type { HTMLDivElement } */ (document.getElementById('tax-deduction-fields'))
 
 // Options form
-const optionsForm = document.getElementById('options')
-const conversionRateInput = document.getElementById('conversion-rate');
-const localCurrencySymbolInput = document.getElementById('local-currency');
-const taxDeductionInput = document.getElementById('tax-deduction');
+const optionsForm = /** @type { HTMLFormElement } */ (document.getElementById('options'));
+const conversionRateInput = /** @type { HTMLInputElement } */ (document.getElementById('conversion-rate'));
+const localCurrencySymbolInput = /** @type { HTMLInputElement } */ (document.getElementById('local-currency'));
+// const taxDeductionInput = document.getElementById('tax-deduction');
+
+if(
+    !optionsForm || 
+    !conversionRateInput ||
+    !localCurrencySymbolInput
+) {
+    throw new Error('DOM element not found')
+}
 
 /** @type { Payment [] } */
 let payments = [];
-let conversionRate = 1;
-let localCurrencySymbol = htmlEntityToCharacter('&euro;');
-let taxDeduction = 0.3;
-let taxDeductions = {};
+//let conversionRate = 1;
+//let localCurrencySymbol = htmlEntityToCharacter('&euro;');
+//let taxDeductions = {};
+
+/**
+ * @returns { Settings }
+ */
+const getSettingsFromStorage = () => {
+    const settingsStr = localStorage.getItem('upwork-csv:settings');
+    if(!settingsStr) {
+        /**
+         * @type { Settings }
+         */
+        const settings = { ...DEFAULT_SETTINGS };
+        localStorage.setItem('upwork-csv:settings', JSON.stringify(settings));
+        return settings;
+    }
+    return JSON.parse(settingsStr);
+}
+
+const saveSettingsToStorage = (settings) => {
+    localStorage.setItem('upwork-csv:settings', JSON.stringify(settings));
+}
+
+/** @type { Settings } */
+const settings = getSettingsFromStorage();
 const defaultTaxDeduction = 0;
 
-conversionRateInput.value = conversionRate;
-localCurrencySymbolInput.value = localCurrencySymbol;
+const DEFAULT_SETTINGS = {
+    conversionRate: 1,
+    localCurrencySymbol: htmlEntityToCharacter('&euro;'),
+    taxDeductions: {}
+}
+
+conversionRateInput.value = settings.conversionRate.toString();
+localCurrencySymbolInput.value = settings.localCurrencySymbol;
 //taxDeductionInput.value = taxDeduction * 100;
 
 optionsForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    conversionRate = conversionRateInput.value;
-    localCurrencySymbol = localCurrencySymbolInput.value;
+    settings.conversionRate = parseFloat(conversionRateInput.value);
+    settings.localCurrencySymbol = localCurrencySymbolInput.value;
     const taxDeductionFields = /** @type { HTMLElement[] } */ (Array.from(taxDeductionsElement.children));
-    for(taxDeductionField of taxDeductionFields) {
+    for(const taxDeductionField of taxDeductionFields) {
         console.log(taxDeductionField);
-        const taxInput = taxDeductionField.querySelector('input');
-        taxDeductions[taxDeductionField.dataset.client] = taxInput.value / 100;
+        const taxInput = /** @type { HTMLInputElement } */ (taxDeductionField.querySelector('input'));
+        const clientName = taxDeductionField.dataset.client;
+        if(typeof clientName !== 'string') {
+            console.warn('No client name specified in field\'s dataset')
+            continue;
+        }
+        settings.taxDeductions[clientName] = parseFloat(taxInput.value) / 100;
     }
     // taxDeductionsElement.children;
     //taxDeduction = taxDeductionInput.value / 100;
+    saveSettingsToStorage(settings);
     renderTable(payments);
     renderClientsTable(payments);
 })
+
+
 
 function htmlEntityToCharacter(str){
     var a = document.createElement('div');
@@ -59,7 +110,10 @@ csvUploadField.addEventListener('change', async (e) => {
     csvUploadFieldError.innerHTML = '';
     const target = /** @type { HTMLInputElement } */ (e.target);
 
-    const file = /** @type { File } */ (e.target.files[0]);
+    if(!target.files?.length) {
+        throw new Error('File not found')
+    }
+    const file = /** @type { File } */ (target.files[0]);
 
     renderIfUploadedElement.classList.add('hidden');
 
@@ -90,6 +144,7 @@ csvUploadField.addEventListener('change', async (e) => {
  */
 const parseCSVFile = async (file) => {
     const fileBuffer = await file.arrayBuffer()
+    //@ts-ignore
     const data = XLSX.read(fileBuffer);
 
     const sheet = data.Sheets.Sheet1;
@@ -124,7 +179,7 @@ const parseCSVFile = async (file) => {
  * Parse a CSV row and convert it into a payment object
  * @param row 
  * 
- * @returns { Payment }
+ * @returns { Payment | null }
  */
 const parseRow = (row) => {
 
@@ -148,7 +203,7 @@ const parseRow = (row) => {
 }
 
 const getClientTax = (clientName) => {
-    return taxDeductions[clientName] || 0;
+    return settings.taxDeductions[clientName] || 0;
 }
 
 /**
@@ -167,19 +222,22 @@ const renderTable = (payments, showTableIfHidden = true) => {
         'Client',
         'Date',
         'Paid ($)',
-        `Paid (${localCurrencySymbol})`,
-        `Taxed (${localCurrencySymbol})`,
-        `Paid (${localCurrencySymbol}) after tax`
+        `Paid (${settings.localCurrencySymbol})`,
+        `Taxed (${settings.localCurrencySymbol})`,
+        `Paid (${settings.localCurrencySymbol}) after tax`
     ]
 
     const tBody = document.createElement('tbody');
 
+    /**
+     * @type { number }
+     */
     let totalLocalAfterTax = 0;
 
-    for (payment of payments) {
+    for (const payment of payments) {
         const row = createPaymentsTableRow(payment);
         tBody.appendChild(row);
-        totalLocalAfterTax += payment.amount * conversionRate * (1 - getClientTax(payment.client));
+        totalLocalAfterTax += payment.amount * settings.conversionRate * (1 - getClientTax(payment.client));
     }
 
     const totalRow = document.createElement('tr');
@@ -187,14 +245,14 @@ const renderTable = (payments, showTableIfHidden = true) => {
     emptyCell.colSpan = 3;
     // const emptyCell2 = document.createElement('td');
     const totalCol = document.createElement('td');
-    const totalEur = payments.reduce((n, { amount }) => n + (amount * conversionRate), 0).toFixed(2);
+    const totalEur = payments.reduce((n, { amount }) => n + (amount * settings.conversionRate), 0);
     const totalAfterTaxCol = document.createElement('td');
-    totalLocalAfterTax = totalLocalAfterTax.toFixed(2);
+    totalLocalAfterTax = totalLocalAfterTax;
     const totalTaxCol = document.createElement('td');
     const totalTax = (totalEur - totalLocalAfterTax).toFixed(2);
-    totalCol.innerHTML = totalEur;
+    totalCol.innerHTML = totalEur.toFixed(2);
     totalTaxCol.innerHTML = totalTax;
-    totalAfterTaxCol.innerHTML = totalLocalAfterTax;
+    totalAfterTaxCol.innerHTML = totalLocalAfterTax.toFixed(2);
 
     totalCol.classList.add('bold');
     totalTaxCol.classList.add('bold');
@@ -207,7 +265,7 @@ const renderTable = (payments, showTableIfHidden = true) => {
     tBody.appendChild(totalRow);
 
 
-    for (tHeadCol of tHeadCols) {
+    for (const tHeadCol of tHeadCols) {
         const colElement = document.createElement('th');
         colElement.innerHTML = tHeadCol;
         tHeadRow.appendChild(colElement);
@@ -220,7 +278,7 @@ const renderTable = (payments, showTableIfHidden = true) => {
 const renderOptions = () => {
     const clients = getClients(payments);
     taxDeductionsElement.innerHTML = "";
-    for (client of clients) {
+    for (const client of clients) {
         const field = createTaxDeductionField(client);
         taxDeductionsElement.appendChild(field);
     }
@@ -270,23 +328,21 @@ const kebabCase = string => string
 const createPaymentsTableRow = (payment) => {
     const row = document.createElement('tr');
 
-    console.log(taxDeductions);
-    console.log(payment.client)
-    const taxDeduction = taxDeductions[payment.client] || 0;
+    const taxDeduction = settings.taxDeductions[payment.client] || 0;
 
-    const amountLocal = (payment.amount * conversionRate).toFixed(2)
-    const amountLocalAfterTax = (payment.amount * (1 - taxDeduction) * conversionRate).toFixed(2)
+    const amountLocal = (payment.amount * settings.conversionRate)
+    const amountLocalAfterTax = (payment.amount * (1 - taxDeduction) * settings.conversionRate)
 
     const columns = [
         payment.client,
         payment.date,
         payment.amount.toFixed(2),
-        amountLocal,
+        amountLocal.toFixed(2),
         (amountLocal - amountLocalAfterTax).toFixed(2),
-        amountLocalAfterTax
+        amountLocalAfterTax.toFixed(2)
     ]
 
-    for (column of columns) {
+    for (const column of columns) {
         const colElement = document.createElement('td');
         colElement.innerHTML = column;
         row.appendChild(colElement);
@@ -299,7 +355,7 @@ const createTableHead = (cols) => {
     const tHead = document.createElement('thead');
     const tHeadRow = document.createElement('tr');
 
-    for (tHeadCol of cols) {
+    for (const tHeadCol of cols) {
         const colElement = document.createElement('th');
         colElement.innerHTML = tHeadCol;
         tHeadRow.appendChild(colElement);
@@ -312,7 +368,7 @@ const createTableHead = (cols) => {
 
 const createTableRow = (cols) => {
     const row = document.createElement('tr');
-    for (column of cols) {
+    for (const column of cols) {
         const colElement = document.createElement('td');
         colElement.innerHTML = column;
         row.appendChild(colElement);
@@ -324,7 +380,7 @@ const createTable = (headCols, rows) => {
     const tHead = createTableHead(headCols);
     const tBody = document.createElement('tbody');
     
-    for (row of rows) {
+    for (const row of rows) {
         const rowElement = createTableRow(row);
         tBody.appendChild(rowElement);
     }
@@ -344,7 +400,7 @@ const createTable = (headCols, rows) => {
  */
 
 /**
- * @type { Payment[] } payments
+ * @param { Payment[] } payments
  */
 const renderClientsTable = (payments) => {
 
@@ -359,9 +415,9 @@ const renderClientsTable = (payments) => {
     /** @type { Client[]} */
     const clients = [];
 
-    for(clientName of clientNames) {
-        const totalAmountDollars = payments.filter(payment => payment.client == clientName).reduce((n, { amount }) => n + (amount), 0).toFixed(2)
-        const totalAmountEuro = (totalAmountDollars * conversionRate).toFixed(2);
+    for(const clientName of clientNames) {
+        const totalAmountDollars = payments.filter(payment => payment.client == clientName).reduce((n, { amount }) => n + (amount), 0);
+        const totalAmountEuro = (totalAmountDollars * settings.conversionRate);
 
         clients.push({
             name: clientName,
@@ -373,18 +429,18 @@ const renderClientsTable = (payments) => {
     const { tHead, tBody } = createTable(
         [
             'Client',
-            `Total (${localCurrencySymbol})`,
-            `Tax (${localCurrencySymbol})`,
-            `After Tax (${localCurrencySymbol})`
+            `Total (${settings.localCurrencySymbol})`,
+            `Tax (${settings.localCurrencySymbol})`,
+            `After Tax (${settings.localCurrencySymbol})`
         ],
         clients.map(client => {
             const taxPercentage = getClientTax(client.name);
-            const taxAmount = (client.totalAmountEuro * taxPercentage).toFixed(2);
+            const taxAmount = (client.totalAmountEuro * taxPercentage);
             const totalAfterTax = (client.totalAmountEuro - taxAmount).toFixed(2)
             return [
                 client.name,
                 client.totalAmountEuro,
-                taxAmount,
+                taxAmount.toFixed(2),
                 totalAfterTax
             ]
         })
