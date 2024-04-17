@@ -80,21 +80,23 @@ td, th {
 /* Layout */
 
 .privacy-policy {
-    margin-top: auto;
-    margin-left: auto;
-    margin-right: 16px;
+    /* margin-top: auto; */
+    /* margin-left: auto; */
+    /* margin-right: 16px; */
     max-width: 400px;
 }
 
 .how-to-use {
     max-width: 500px;
-    margin-top: auto;
+    /* margin-top: auto; */
 }
 
 footer {
     margin-top: auto;
-    display:flex;
+    display: flex;
+    flex-direction: column;
     justify-content: space-between;
+    gap: 16px;
 }
 
 /* Buttons */
@@ -119,4 +121,10 @@ form#options {
     border-radius: 4px;
     padding: 16px;
     width: fit-content;
+}
+
+@media screen and (min-width: 700px) {
+    footer {
+        flex-direction: row;
+    }
 }
