@@ -69,6 +69,14 @@ td, th {
     padding: 8px;
 }
 
+/* Images */
+
+
+
+.how-to-use img {
+    max-width: 800px;
+}
+
 /* Layout */
 
 .privacy-policy {
@@ -76,6 +84,17 @@ td, th {
     margin-left: auto;
     margin-right: 16px;
     max-width: 400px;
+}
+
+.how-to-use {
+    max-width: 500px;
+    margin-top: auto;
+}
+
+footer {
+    margin-top: auto;
+    display:flex;
+    justify-content: space-between;
 }
 
 /* Buttons */
