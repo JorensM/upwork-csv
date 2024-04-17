@@ -42,6 +42,12 @@ let payments = [];
 //let localCurrencySymbol = htmlEntityToCharacter('&euro;');
 //let taxDeductions = {};
 
+const DEFAULT_SETTINGS = {
+    conversionRate: 1,
+    localCurrencySymbol: htmlEntityToCharacter('&euro;'),
+    taxDeductions: {}
+}
+
 /**
  * @returns { Settings }
  */
@@ -65,12 +71,6 @@ const saveSettingsToStorage = (settings) => {
 /** @type { Settings } */
 const settings = getSettingsFromStorage();
 const defaultTaxDeduction = 0;
-
-const DEFAULT_SETTINGS = {
-    conversionRate: 1,
-    localCurrencySymbol: htmlEntityToCharacter('&euro;'),
-    taxDeductions: {}
-}
 
 conversionRateInput.value = settings.conversionRate.toString();
 localCurrencySymbolInput.value = settings.localCurrencySymbol;
@@ -203,7 +203,7 @@ const parseRow = (row) => {
 }
 
 const getClientTax = (clientName) => {
-    return settings.taxDeductions[clientName] || 0;
+    return settings.taxDeductions[clientName] || defaultTaxDeduction;
 }
 
 /**
@@ -308,7 +308,7 @@ const createTaxDeductionField = (clientName) => {
     field.innerHTML = `
         <label for='${fieldID}'>Tax deduction (percent) for ${clientName}</label>
         <div>
-            <input value='${defaultTaxDeduction}' name='${fieldID}' id='${fieldID}' type='number' step='1' min='0' max='100'/>
+            <input value='${getClientTax(clientName) * 100}' name='${fieldID}' id='${fieldID}' type='number' step='1' min='0' max='100'/>
             <span>%</span>
         </div>
     `
@@ -439,7 +439,7 @@ const renderClientsTable = (payments) => {
             const totalAfterTax = (client.totalAmountEuro - taxAmount).toFixed(2)
             return [
                 client.name,
-                client.totalAmountEuro,
+                client.totalAmountEuro.toFixed(2),
                 taxAmount.toFixed(2),
                 totalAfterTax
             ]
