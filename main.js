@@ -130,6 +130,7 @@ csvUploadField.addEventListener('change', async (e) => {
             renderIfUploadedElement.classList.remove('hidden');
         }
     } catch (e) {
+        console.error(e);
         csvUploadField.value = '';
         csvUploadFieldError.innerHTML = e.message;
     }  
@@ -149,9 +150,12 @@ const parseCSVFile = async (file) => {
 
     const sheet = data.Sheets.Sheet1;
 
-    let rows = [...Array(100)].map(() => ({}));
+    // console.log('sheet: ', sheet);
+
+    let rows = [...Array(500)].map(() => ({}));
 
     for(const cellKey in sheet) {
+        //rows.push({})
         if (cellKey.startsWith('!')) {
             continue;
         }
